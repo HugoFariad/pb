@@ -1,0 +1,55 @@
+import os
+import subprocess
+from bs4 import BeautifulSoup
+
+# Configurações
+URL = "https://fruityblox.com/stock"  # URL do site
+DOWNLOAD_FOLDER = "site_download"    # Pasta para armazenar o site baixado
+
+def download_site(url, folder):
+    """Baixa o site usando wget e salva na pasta especificada."""
+    try:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+        
+        # Comando wget para baixar o site inteiro
+        command = f"wget -q -E -H -k -K -p -P {folder} {url}"
+        subprocess.run(command, shell=True, check=True)
+        print(f"Site baixado com sucesso na pasta: {folder}")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro ao baixar o site: {e}")
+        return False
+    return True
+
+def analyze_site(folder):
+    """Analisa os arquivos baixados e lista as extensões encontradas."""
+    extensions = {}
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            ext = os.path.splitext(file)[-1]  # Obtém a extensão do arquivo
+            if ext:
+                extensions[ext] = extensions.get(ext, 0) + 1
+
+    # Exibe as extensões mais comuns
+    print("\nExtensões encontradas:")
+    for ext, count in sorted(extensions.items(), key=lambda x: x[1], reverse=True):
+        print(f"{ext}: {count} arquivo(s)")
+
+def find_main_html(folder):
+    """Tenta encontrar o arquivo HTML principal e analisa seu conteúdo."""
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            if file.endswith(".html"):
+                file_path = os.path.join(root, file)
+                print(f"\nArquivo HTML encontrado: {file_path}")
+                with open(file_path, "r", encoding="utf-8") as f:
+                    soup = BeautifulSoup(f, "html.parser")
+                    print("\nTítulo da página:", soup.title.string if soup.title else "Não encontrado")
+                return
+    print("Nenhum arquivo HTML encontrado.")
+
+# Fluxo principal
+if __name__ == "__main__":
+    if download_site(URL, DOWNLOAD_FOLDER):
+        analyze_site(DOWNLOAD_FOLDER)
+        find_main_html(DOWNLOAD_FOLDER)
